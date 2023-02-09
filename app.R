@@ -17,7 +17,7 @@ genTriunghi <- function(distanta)
   p1 = runif(1)
   p2 = runif(1)
   sqr = sqrt(p1)
-  puncte[1,] = c(runif(1),runif(1)*sqrt(3)/2)
+  puncte[1,] = c(((1-sqr)*0 + (sqr * (1-p2)) * 1 + (sqr * p2) * 0.5), ((1-sqr)*0 + (sqr * (1-p2)) * 0 + (sqr * p2) * sqrt(3)/2))
   #Generarea restului de puncte
   for(i in 2:maxim)
   {
