@@ -1,3 +1,134 @@
+---
+title: "ChaosGame Documentation 244"
+author: "Fănică Narcis, Clinciu Diana, Păun Andrei"
+date: "2023-02-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 2D Chaos Game
+
+Chaos game este o metoda de generare a unui fractal porning de la un poligon de bază.
+Mai întâi este selectat un punct la întâmplare din interiorul poligonului.
+Apoi sunt generate n puncte în interiorul poligonului între punctul generat anterior și unul dintre vârfurile poligonului ales la întâmplare.
+Punctele noi sunt generate la o fracțiune din distanța dintre punctul anterior și vârful selectat egală cu un parametru setat de noi.
+În funcție de poligonul și distanța alese, rezultatul poate fi un fractal (precum triunghiul lui Sierpinski)
+
+***
+
+UI-ul aplicației este alcătuit din următoarele elemente:
+1. Poligonul de bază
+  + Triunghi
+  + Pătrat
+  + Pentagon
+  + Hexagon
+2. Distanța (fracțiunea din distanța dintre punct și varful poligonului)
+3. Intervalul de număr de puncte de generat
+4. Slider-ul pentru selectarea numărului de puncte de generat
+
+***
+
+## Generarea poligoanelor
+#### Functia de generare a triunghiului
+```{r}
+genTriunghi <- function(distanta)
+{
+  maxim = 10000
+  
+  #Triunghi echilateral
+  varfuri = matrix(NA, ncol = 2, nrow = 3)
+  varfuri[1,] = c(0, 0)
+  varfuri[2,] = c(1, 0)
+  varfuri[3,] = c(0.5, sqrt(3)/2)
+  #punctele adaugate -> pana la 10000 de puncte -> tot atatea randuri
+  #coordonate x si y -> 2 coloane
+  puncte = matrix(NA, ncol = 2, nrow = maxim)
+  #Generarea primului punct random
+  p1 = runif(1)
+  p2 = runif(1)
+  sqr = sqrt(p1)
+  puncte[1,] = c(runif(1),runif(1)*sqrt(3)/2)
+  #Generarea restului de puncte
+  for(i in 2:maxim)
+  {
+    #Determinam un varf random si ii memoram coordonatele
+    varf = sample(1:3, 1, replace=TRUE)
+    x_varf = varfuri[varf[1], 1]
+    y_varf = varfuri[varf[1], 2]
+    
+    #Gasim punctul aflat la distanta data intre punctul anterior si varful determinat
+    punct = c((x_varf - puncte[i-1, 1]) * distanta + puncte[i-1, 1], (y_varf - puncte[i-1, 2]) * distanta + puncte[i-1, 2])
+    #Memoram noul punct
+    puncte[i, ] = punct
+  }
+  
+  return (list(puncte, varfuri))
+  
+}
+```
+
+
+Funcția de mai sus va întoarce o matrice de 3x2 reprezentând coordonatele punctelor ce alcătuiesc un triunghi echilateral. De asemenea, va întoarce o matrice de 10000x2 reprezentând coordonatele tuturor punctelor generate în interiorul triunghilui. Dintre acestea, in plot-ul final va fi afișat doar un număr de puncte egal cu cel selectat de utilizator.
+
+Primele 15 puncte obținute cu ajutorul funcției.
+
+```{r}
+triunghi = genTriunghi(0.5)
+puncte = triunghi[[1]]
+puncte[1:15, ]
+```
+
+***
+## Partea de server
+
+Partea de server este alcătuită dintr-o funcție reactive ce identifică tipul de poligon dat ca input și apelează funcția de generarea a punctelor corespunzătoare.
+
+```{r eval=FALSE}
+poligon <- reactive({
+    #Triunghi
+    if(input$poligon == 1)
+      return(genTriunghi(input$dist/100))
+    #Pătrat
+    if(input$poligon == 2)
+      return(genPatrat(input$dist/100))
+    #Pentagon
+    if(input$poligon == 3)
+      return(genPentagon(input$dist/100))
+    #Hexagon
+    if(input$poligon == 4)
+      return(genHexagon(input$dist/100))
+  })
+```
+
+
+Odată ce figura a fost aleasă ne rămâne doar să generăm plot-ul corespunzător pe baza figurii generate și a intervalului de puncte:
+(Am modificat puțin modul de apelare a funcțiilor aici față de aplicația propriu-zisă)
+
+Generăm plot-ul:
+
+```{r}
+renderPlot <- function()
+{
+    pol = genTriunghi(0.5);
+    puncte = pol[[1]]
+    varfuri = pol[[2]]
+    
+    plot(0, 0, xlim = c(0, 1), ylim = c(0, 1), col = 0, yaxt = "n", xaxt = "n", xlab = "", ylab = "", bty = "n")
+    points(varfuri[, 1],varfuri[, 2], pch = 20, cex = 2, col = "red")
+    points(puncte[1 : 10000, 1], puncte[1 : 10000 , 2], pch = 20, cex=1, col="blue")
+    
+}
+
+renderPlot()
+```
+
+
+Codul complet al aplicației în shiny:
+
+```{r eval=FALSE}
 library(shiny)
 
 
@@ -249,3 +380,6 @@ server <- function(input, output) {
 }
 
 shinyApp(ui = ui, server = server)
+```
+
+
